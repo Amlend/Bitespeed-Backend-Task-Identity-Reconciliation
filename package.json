@@ -1,0 +1,22 @@
+{
+  "name": "bitespeed-backend-task-identity-reconciliation",
+  "version": "1.0.0",
+  "description": "Backend Task",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Amlend Jadaun",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.7",
+    "@types/sequelize": "^4.28.20",
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7",
+    "sequelize": "^6.37.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

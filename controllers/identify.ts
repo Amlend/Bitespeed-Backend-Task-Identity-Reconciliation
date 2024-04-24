@@ -184,3 +184,38 @@ async function insertNewContact(
     return error;
   }
 }
+
+const getResponse = (contacts: Contact[]) => {
+  let response: ContactResponse = {
+    primaryContatctId: NaN,
+    emails: [],
+    phoneNumbers: [],
+    secondaryContactIds: [],
+  };
+
+  let emails = new Set<string>();
+  let phoneNumbers = new Set<string>();
+  let secondaryContactIds = new Set<number>();
+
+  contacts.forEach((contact) => {
+    if (contact && contact.linkPrecedence === "primary") {
+      response.primaryContatctId = contact.id;
+    } else if (contact) {
+      secondaryContactIds.add(contact.id);
+    }
+
+    if (contact && contact.email) {
+      emails.add(contact.email);
+    }
+
+    if (contact && contact.phoneNumber) {
+      phoneNumbers.add(contact.phoneNumber);
+    }
+  });
+
+  response.emails = [...emails];
+  response.phoneNumbers = [...phoneNumbers];
+  response.secondaryContactIds = [...secondaryContactIds];
+
+  return response;
+};

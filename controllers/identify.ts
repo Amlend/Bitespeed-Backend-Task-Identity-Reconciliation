@@ -3,24 +3,65 @@ import { Contact, ContactResponse } from "../models/contact";
 import { Op } from "sequelize";
 
 export const handleContacts = async (req: Request, res: Response) => {
-  // Implement basic error handling: check for missing email or phone number
-  if (!req.body.email && !req.body.phoneNumber) {
+  // 1. Validate Request Body
+  if (!validateRequestBody(req.body)) {
     res.sendStatus(422);
     return;
   }
 
-  // Call functions to handle primary ID retrieval and contact operations
+  // 2. Get Primary and Secondary IDs
   const { primaryId, secondaryId } = await getPrimaryIds(
     req.body.email,
     req.body.phoneNumber
   );
-  let contacts = await handleContactActions(primaryId, secondaryId, req.body);
 
-  const response = getResponse(contacts);
-  res.json({
-    contact: response,
-  });
+  // 3. Handle Connections and Get Contacts
+  const contacts = await handleConnections(primaryId, secondaryId, req.body);
+
+  // 4. Prepare and Send Response
+  if (contacts) {
+    const response = getResponse(contacts);
+    res.json({ contact: response });
+  } else {
+    // Case where no contacts are found
+    res.sendStatus(500);
+  }
 };
+
+// Function to validate request body
+const validateRequestBody = (body: any) => {
+  return body.email !== null && body.phoneNumber !== null;
+};
+
+// Function to handle connection logic and fetching contacts
+async function handleConnections(
+  primaryId: number | null,
+  secondaryId: number | null,
+  reqBody: any
+) {
+  let contacts: Contact[] = [];
+  if (primaryId && secondaryId) {
+    const connectedId = await connectContacts(primaryId, secondaryId);
+    if (!connectedId) {
+      return null;
+    }
+    contacts = await getContacts(connectedId);
+  } else if (primaryId) {
+    contacts = await getContacts(primaryId);
+  } else {
+    const newContact = await insertNewContact(
+      reqBody.email,
+      reqBody.phoneNumber,
+      primaryId
+    );
+    if (newContact instanceof Error) {
+      console.log(newContact);
+    } else {
+      contacts.push(newContact as Contact);
+    }
+  }
+  return contacts;
+}
 
 // Function to retrieve primary contact IDs based on email and phone number.
 async function getPrimaryIds(email: string, phoneNumber: string) {
@@ -93,7 +134,7 @@ async function handleContactActions(
     const newContact = await insertNewContact(
       reqBody.email,
       reqBody.phoneNumber,
-      null
+      primaryId
     );
     if (newContact instanceof Error) {
       console.log(newContact);

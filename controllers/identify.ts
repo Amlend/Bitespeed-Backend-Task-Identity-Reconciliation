@@ -56,3 +56,35 @@ async function getPrimaryIds(email: string, phoneNumber: string) {
     return { primaryId: id1, secondaryId: null };
   }
 }
+
+async function handleContactActions(
+  primaryId: number | null,
+  secondaryId: number | null,
+  reqBody: any
+) {
+  let contacts: Contact[] = [];
+
+  if (primaryId && secondaryId) {
+    const connectedContactId = await connectContacts(primaryId, secondaryId);
+    if (connectedContactId) {
+      const updatedContacts = await getContacts(connectedContactId);
+      contacts.push(...updatedContacts);
+    }
+  } else if (primaryId) {
+    const existingContacts = await getContacts(primaryId);
+    contacts.push(...existingContacts);
+  } else {
+    const newContact = await insertNewContact(
+      req.body.email,
+      req.body.phoneNumber,
+      null
+    );
+    if (newContact instanceof Error) {
+      console.log(newContact);
+    } else {
+      contacts.push(newContact);
+    }
+  }
+
+  return contacts;
+}

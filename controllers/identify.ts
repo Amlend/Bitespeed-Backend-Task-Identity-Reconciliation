@@ -57,6 +57,20 @@ async function getPrimaryIds(email: string, phoneNumber: string) {
   }
 }
 
+const getPrimaryIdFromContact = (contact: Contact | null) => {
+  if (contact) {
+    if (contact.linkPrecedence === "primary") {
+      return contact.id;
+    } else if (contact.linkedId) {
+      return contact.linkedId;
+    } else {
+      return null;
+    }
+  } else {
+    return null;
+  }
+};
+
 async function handleContactActions(
   primaryId: number | null,
   secondaryId: number | null,
@@ -75,14 +89,14 @@ async function handleContactActions(
     contacts.push(...existingContacts);
   } else {
     const newContact = await insertNewContact(
-      req.body.email,
-      req.body.phoneNumber,
+      reqBody.email,
+      reqBody.phoneNumber,
       null
     );
     if (newContact instanceof Error) {
       console.log(newContact);
     } else {
-      contacts.push(newContact);
+      contacts.push(newContact as Contact);
     }
   }
 
@@ -128,4 +142,45 @@ async function connectContacts(pid: number, sid: number) {
   );
 
   return primaryContact.id;
+}
+
+async function getContacts(primaryId: number) {
+  const rows = await Contact.findAll({
+    where: {
+      [Op.or]: [{ id: primaryId }, { linkedId: primaryId }],
+    },
+  });
+
+  let contacts: Contact[] = [];
+  rows.forEach((contact) => {
+    contacts.push(contact);
+  });
+
+  return contacts;
+}
+
+async function insertNewContact(
+  email: string,
+  phoneNumber: string,
+  linkedId: number | null
+) {
+  let precedence: string = "primary";
+  if (linkedId) {
+    precedence = "secondary";
+  }
+
+  try {
+    const result = await Contact.create({
+      phoneNumber: phoneNumber,
+      email: email,
+      linkedId: linkedId,
+      linkPrecedence: precedence,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+    });
+    return result;
+  } catch (error) {
+    return error;
+  }
 }

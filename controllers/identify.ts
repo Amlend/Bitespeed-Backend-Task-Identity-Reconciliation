@@ -88,3 +88,44 @@ async function handleContactActions(
 
   return contacts;
 }
+
+async function connectContacts(pid: number, sid: number) {
+  let contact1 = await Contact.findByPk(pid);
+  let contact2 = await Contact.findByPk(sid);
+
+  let primaryContact: Contact;
+  let secondaryContact: Contact;
+
+  if (contact1 && contact2) {
+    if (contact1.createdAt < contact2.createdAt) {
+      primaryContact = contact1;
+      secondaryContact = contact2;
+    } else {
+      primaryContact = contact2;
+      secondaryContact = contact1;
+    }
+  } else {
+    const error = new Error(
+      `Error: unable to fetch primary contacts with primary keys ${pid}, ${sid}`
+    );
+    console.log(error);
+    return null;
+  }
+
+  await Contact.update(
+    {
+      linkedId: primaryContact.id,
+      linkPrecedence: "secondary",
+    },
+    {
+      where: {
+        [Op.or]: [
+          { linkedId: secondaryContact.id },
+          { id: secondaryContact.id },
+        ],
+      },
+    }
+  );
+
+  return primaryContact.id;
+}

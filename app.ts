@@ -1,8 +1,10 @@
 import express from "express";
+require("dotenv").config();
 import bodyParser from "body-parser";
 import sequelize from "./util/database";
 
 const app = express();
+const port = process.env.PORT;
 
 app.use(bodyParser.json());
 
@@ -12,8 +14,8 @@ app.use(handleContactsRoutes);
 sequelize
   .sync()
   .then(() => {
-    app.listen(3000, () => {
-      console.log(`Server is Running on port 3000`);
+    app.listen(port, () => {
+      console.log(`Server is Running on port ${port}`);
     });
   })
   .catch((error) => {

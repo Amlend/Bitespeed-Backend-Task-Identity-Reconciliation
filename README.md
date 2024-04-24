@@ -2,6 +2,8 @@
 
 This document provides an overview of the functionality and usage of the Identity Reconciliation application written in TypeScript.
 
+Hosted link: [https://bitespeed-backend-task-identity-8pe8.onrender.com](https://bitespeed-backend-task-identity-8pe8.onrender.com)
+
 **Features**
 
 - Connect Contacts: Establish links between two contacts based on their email address or phone number. One contact becomes the "primary" contact, while the other becomes "secondary." Their information is linked for efficient management.
@@ -23,7 +25,7 @@ interface ContactRequestBody {
   phoneNumber?: string;
 }
 
-fetch("/contacts", {
+fetch("/identify", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({

@@ -22,6 +22,7 @@ export const handleContacts = async (req: Request, res: Response) => {
   });
 };
 
+// Function to retrieve primary contact IDs based on email and phone number.
 async function getPrimaryIds(email: string, phoneNumber: string) {
   let id1: number | null = null;
   let id2: number | null = null;
@@ -71,6 +72,7 @@ const getPrimaryIdFromContact = (contact: Contact | null) => {
   }
 };
 
+// Function for connecting, retrieving, and creating contacts.
 async function handleContactActions(
   primaryId: number | null,
   secondaryId: number | null,
@@ -103,6 +105,10 @@ async function handleContactActions(
   return contacts;
 }
 
+/* Function to retrieve both contacts using their primary keys
+ Determines the primary contact based on the creation date.
+ The secondary contact's linkedId and linkPrecedence are updated to point to the primary contact.
+ Finally, the primary contact's ID is returned. */
 async function connectContacts(pid: number, sid: number) {
   let contact1 = await Contact.findByPk(pid);
   let contact2 = await Contact.findByPk(sid);
@@ -144,6 +150,9 @@ async function connectContacts(pid: number, sid: number) {
   return primaryContact.id;
 }
 
+/* This function retrieves all contacts related to the provided primary ID.
+  It uses the Sequelize Op.or operator to find contacts where either the id or the linkedId matches the primary ID.
+  It then iterates through the retrieved rows and adds them to the contacts array. */
 async function getContacts(primaryId: number) {
   const rows = await Contact.findAll({
     where: {
@@ -159,6 +168,8 @@ async function getContacts(primaryId: number) {
   return contacts;
 }
 
+/* This function creates a new contact based on the provided email, phone number, and (optional) linked ID.
+  It sets the linkPrecedence based on whether a linked ID is provided. */
 async function insertNewContact(
   email: string,
   phoneNumber: string,
@@ -185,6 +196,9 @@ async function insertNewContact(
   }
 }
 
+/* This function processes the retrieved contacts and builds the response object.
+  It iterates through the contacts and identifies the primary contact based on the linkPrecedence.
+  It collects unique emails, phone numbers, and secondary contact IDs into sets and then converts them to arrays. */
 const getResponse = (contacts: Contact[]) => {
   let response: ContactResponse = {
     primaryContatctId: NaN,

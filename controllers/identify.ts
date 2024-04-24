@@ -3,65 +3,78 @@ import { Contact, ContactResponse } from "../models/contact";
 import { Op } from "sequelize";
 
 export const handleContacts = async (req: Request, res: Response) => {
-  // 1. Validate Request Body
-  if (!validateRequestBody(req.body)) {
-    res.sendStatus(422);
+  // 1. Validate Request Body (ensure required fields are present and formatted correctly)
+  if (validateRequestBody(req.body)) {
+    res.sendStatus(422); // Unprocessable Entity - request body is invalid
     return;
   }
 
-  // 2. Get Primary and Secondary IDs
-  const { primaryId, secondaryId } = await getPrimaryIds(
-    req.body.email,
-    req.body.phoneNumber
-  );
+  // 2. Extract primary and secondary IDs from request body (email and phone number)
+  let {
+    primaryId,
+    secondaryId,
+  }: { primaryId: number | null; secondaryId: number | null } =
+    await getPrimaryIds(req.body.email, req.body.phoneNumber);
+  let contacts: Contact[] = []; // Array to store retrieved contacts
 
-  // 3. Handle Connections and Get Contacts
-  const contacts = await handleConnections(primaryId, secondaryId, req.body);
+  // 3. If both primary and secondary IDs exist, attempt to connect them
+  if (primaryId && secondaryId) {
+    let id = await connectContacts(primaryId, secondaryId);
+    if (!id) {
+      res.sendStatus(500); // Internal Server Error - connection failed
+      return;
+    }
+    let updatedContacts = await getContacts(id);
+    contacts.push(...updatedContacts); // Add connected contacts to results
 
-  // 4. Prepare and Send Response
-  if (contacts) {
-    const response = getResponse(contacts);
-    res.json({ contact: response });
-  } else {
-    // Case where no contacts are found
-    res.sendStatus(500);
+    const response = getResponse(contacts); // Format response data
+    res.json({
+      contact: response,
+    });
+    return;
   }
+
+  // 4. If only primary ID exists, retrieve existing contacts associated with it
+  if (primaryId) {
+    let existingContacts = await getContacts(primaryId);
+    contacts.push(...existingContacts);
+  }
+
+  // 5. Handle scenario where request body lacks email or phone number
+  if (req.body.email === null || req.body.phoneNumber === null) {
+    if (primaryId) {
+      const response = getResponse(contacts); // Format response data (if primary ID exists)
+      res.json({
+        contact: response,
+      });
+      return;
+    } else {
+      res.sendStatus(500);
+    }
+  }
+
+  // 6. If no IDs found, insert a new contact using request body data (email and phone number)
+  let result: any = await insertNewContact(
+    req.body.email,
+    req.body.phoneNumber,
+    primaryId
+  );
+  if (result instanceof Error) {
+    console.log(result); // Log any errors during insertion
+  } else {
+    contacts.push(result); // Add newly inserted contact to results
+  }
+
+  const response = getResponse(contacts); // Format response data
+  res.json({
+    contact: response,
+  });
 };
 
 // Function to validate request body
 const validateRequestBody = (body: any) => {
-  return body.email !== null && body.phoneNumber !== null;
+  return body.email === null && body.phoneNumber === null;
 };
-
-// Function to handle connection logic and fetching contacts
-async function handleConnections(
-  primaryId: number | null,
-  secondaryId: number | null,
-  reqBody: any
-) {
-  let contacts: Contact[] = [];
-  if (primaryId && secondaryId) {
-    const connectedId = await connectContacts(primaryId, secondaryId);
-    if (!connectedId) {
-      return null;
-    }
-    contacts = await getContacts(connectedId);
-  } else if (primaryId) {
-    contacts = await getContacts(primaryId);
-  } else {
-    const newContact = await insertNewContact(
-      reqBody.email,
-      reqBody.phoneNumber,
-      primaryId
-    );
-    if (newContact instanceof Error) {
-      console.log(newContact);
-    } else {
-      contacts.push(newContact as Contact);
-    }
-  }
-  return contacts;
-}
 
 // Function to retrieve primary contact IDs based on email and phone number.
 async function getPrimaryIds(email: string, phoneNumber: string) {

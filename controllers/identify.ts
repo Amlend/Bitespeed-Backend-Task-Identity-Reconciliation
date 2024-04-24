@@ -113,39 +113,6 @@ const getPrimaryIdFromContact = (contact: Contact | null) => {
   }
 };
 
-// Function for connecting, retrieving, and creating contacts.
-async function handleContactActions(
-  primaryId: number | null,
-  secondaryId: number | null,
-  reqBody: any
-) {
-  let contacts: Contact[] = [];
-
-  if (primaryId && secondaryId) {
-    const connectedContactId = await connectContacts(primaryId, secondaryId);
-    if (connectedContactId) {
-      const updatedContacts = await getContacts(connectedContactId);
-      contacts.push(...updatedContacts);
-    }
-  } else if (primaryId) {
-    const existingContacts = await getContacts(primaryId);
-    contacts.push(...existingContacts);
-  } else {
-    const newContact = await insertNewContact(
-      reqBody.email,
-      reqBody.phoneNumber,
-      primaryId
-    );
-    if (newContact instanceof Error) {
-      console.log(newContact);
-    } else {
-      contacts.push(newContact as Contact);
-    }
-  }
-
-  return contacts;
-}
-
 /* Function to retrieve both contacts using their primary keys
  Determines the primary contact based on the creation date.
  The secondary contact's linkedId and linkPrecedence are updated to point to the primary contact.
